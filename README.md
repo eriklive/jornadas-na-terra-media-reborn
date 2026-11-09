@@ -2,6 +2,8 @@
 
 Editor de mapas hexagonais em 3D feito com **Angular** e **Three.js**, pensado para montar os mapas das partidas.
 
+**Abrir o editor:** https://eriklive.github.io/jornadas-na-terra-media-reborn/
+
 ## O que já faz
 
 - **Peças**: os 22 contornos de peça (lados A e B) mais um hexágono avulso. Encaixe na grade com rotação de 60° e bloqueio de sobreposição.
@@ -18,6 +20,10 @@ npm install
 npm start        # http://localhost:4200
 npm run build
 ```
+
+## Publicação
+
+Cada push na `main` roda `.github/workflows/publicar.yml`, que gera o build e o envia para a branch `gh-pages`, servida pelo GitHub Pages.
 
 ## Estrutura
 
