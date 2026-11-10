@@ -1,0 +1,110 @@
+<app-map-scene />
+
+<header class="top">
+  <h1>Mapa 3D</h1>
+  <div class="top-actions">
+    <button type="button" (click)="store.undo()" [disabled]="!store.canUndo()">Desfazer</button>
+    <button type="button" (click)="menuOpen.set(!menuOpen())" [attr.aria-expanded]="menuOpen()">Mapa</button>
+  </div>
+  @if (menuOpen()) {
+    <div class="menu">
+      <button type="button" (click)="exportMap()">Exportar JSON</button>
+      <button type="button" (click)="file.click()">Importar JSON</button>
+      <button type="button" class="danger" (click)="clearMap()">Limpar mapa</button>
+      <hr />
+      <button type="button" (click)="savePresets()">Salvar pinturas como padrão</button>
+      <button type="button" (click)="exportPresets()">Exportar presets</button>
+      <button type="button" (click)="presetFile.click()">Importar presets</button>
+      <button type="button" class="danger" (click)="clearPresets()">Remover presets</button>
+    </div>
+  }
+  <input #presetFile type="file" accept="application/json,.json" hidden (change)="importPresets(presetFile)" />
+  <input #file type="file" accept="application/json,.json" hidden (change)="importMap(file)" />
+</header>
+
+@if (notice()) {
+  <div class="notice" role="status">{{ notice() }}</div>
+}
+
+<footer class="panel">
+  <nav class="tabs">
+    @for (m of modes; track m.id) {
+      <button type="button" [class.active]="store.mode() === m.id" (click)="store.mode.set(m.id)">{{ m.label }}</button>
+    }
+  </nav>
+
+  <p class="hint">{{ hint() }}</p>
+
+  @switch (store.mode()) {
+    @case ('peca') {
+      <div class="row">
+        <div class="seg">
+          <button type="button" [class.active]="side() === 'A'" (click)="side.set('A')">Lado A</button>
+          <button type="button" [class.active]="side() === 'B'" (click)="side.set('B')">Lado B</button>
+        </div>
+        <button type="button" class="rotate" (click)="store.rotateTool()">Girar 60° ({{ store.rotation() * 60 }}°)</button>
+      </div>
+      <div class="strip">
+        @for (t of visibleThumbs(); track t.def.id) {
+          <button
+            type="button"
+            class="tile"
+            [class.active]="store.tileId() === t.def.id"
+            (click)="store.tileId.set(t.def.id)"
+          >
+            <svg [attr.viewBox]="t.viewBox" aria-hidden="true">
+              <g [attr.transform]="store.tileId() === t.def.id ? 'rotate(' + store.rotation() * 60 + ')' : null">
+                @for (p of t.polys; track p; let i = $index) {
+                  <polygon [attr.points]="p" [style.fill]="terrainColor(t.def.id, i)" />
+                }
+              </g>
+            </svg>
+            <span>{{ t.def.name }}</span>
+          </button>
+        }
+      </div>
+    }
+    @case ('terreno') {
+      <div class="strip">
+        @for (t of terrains; track t.id) {
+          <button
+            type="button"
+            class="chip"
+            [class.active]="store.paintTerrain() === t.id"
+            (click)="store.paintTerrain.set(t.id)"
+          >
+            <i [style.background]="t.color"></i>{{ t.label }}
+          </button>
+        }
+      </div>
+    }
+    @case ('marcador') {
+      <div class="strip">
+        @for (m of markers; track m.id) {
+          <button
+            type="button"
+            class="chip"
+            [class.active]="store.markerKind() === m.id"
+            (click)="store.markerKind.set(m.id)"
+          >
+            <i class="round" [style.background]="m.id === 'heroi' ? store.heroColor() : m.color"></i>{{ m.label }}
+          </button>
+        }
+      </div>
+      @if (store.markerKind() === 'heroi') {
+        <div class="strip colors">
+          @for (c of heroColors; track c) {
+            <button
+              type="button"
+              class="swatch"
+              [class.active]="store.heroColor() === c"
+              [style.background]="c"
+              [attr.aria-label]="'Cor ' + c"
+              (click)="store.heroColor.set(c)"
+            ></button>
+          }
+        </div>
+      }
+    }
+  }
+</footer>
