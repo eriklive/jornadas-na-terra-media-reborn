@@ -77,10 +77,44 @@ export class App {
   }
 
   protected exportMap(): void {
-    const url = URL.createObjectURL(new Blob([this.store.exportJson()], { type: 'application/json' }));
+    this.download(this.store.exportJson(), 'mapa.json');
+  }
+
+  protected terrainColor(defId: string, index: number): string | null {
+    const t = this.store.presets()[defId]?.[index];
+    return t ? TERRAINS[t].color : null;
+  }
+
+  protected savePresets(): void {
+    const n = this.store.savePresetsFromMap();
+    this.flash(n ? `Padrão salvo para ${n} peça(s).` : 'Nenhuma peça pintada no mapa.');
+    this.menuOpen.set(false);
+  }
+
+  protected exportPresets(): void {
+    this.download(this.store.exportPresets(), 'presets.json');
+  }
+
+  protected async importPresets(input: HTMLInputElement): Promise<void> {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    const n = this.store.importPresets(await file.text());
+    this.flash(n < 0 ? 'Arquivo inválido: não é um arquivo de presets.' : `Presets carregados: ${n} peça(s).`);
+    this.menuOpen.set(false);
+  }
+
+  protected clearPresets(): void {
+    this.store.clearPresets();
+    this.flash('Presets removidos.');
+    this.menuOpen.set(false);
+  }
+
+  private download(text: string, name: string): void {
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'mapa.json';
+    a.download = name;
     a.click();
     URL.revokeObjectURL(url);
     this.menuOpen.set(false);

@@ -4,6 +4,7 @@ import { CellDef, HERO_COLORS, MARKERS, MapState, MarkerKind, Mode, PlacedTile, 
 import { TILE_BY_ID, TILE_LIBRARY } from './tile-library';
 
 const STORAGE_KEY = 'jtm-mapa-v1';
+const PRESETS_KEY = 'jtm-presets-v1';
 const EMPTY: MapState = { version: 1, nextUid: 1, tiles: [], markers: [] };
 
 export interface OccupiedCell {
@@ -29,6 +30,36 @@ function isMapState(v: unknown): v is MapState {
   );
 }
 
+/** Terreno padrão por peça: id da peça -> (índice do hexágono -> terreno). */
+export type Presets = Record<string, Record<number, Terrain>>;
+
+/** Mantém só entradas válidas: peça existente, índice dentro da peça e terreno conhecido. */
+function cleanPresets(v: unknown): Presets | null {
+  if (!v || typeof v !== 'object') return null;
+  const out: Presets = {};
+  for (const [defId, cells] of Object.entries(v as Record<string, unknown>)) {
+    const def = TILE_BY_ID.get(defId);
+    if (!def || !cells || typeof cells !== 'object') continue;
+    const clean: Record<number, Terrain> = {};
+    for (const [i, t] of Object.entries(cells as Record<string, unknown>)) {
+      const idx = Number(i);
+      if (Number.isInteger(idx) && idx >= 0 && idx < def.cells.length && typeof t === 'string' && t in TERRAINS) {
+        clean[idx] = t as Terrain;
+      }
+    }
+    if (Object.keys(clean).length) out[defId] = clean;
+  }
+  return out;
+}
+
+function loadPresets(): Presets {
+  try {
+    return cleanPresets(JSON.parse(localStorage.getItem(PRESETS_KEY) ?? 'null')) ?? {};
+  } catch {
+    return {};
+  }
+}
+
 function load(): MapState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -43,6 +74,7 @@ function load(): MapState {
 @Injectable({ providedIn: 'root' })
 export class MapStore {
   readonly state = signal<MapState>(load());
+  readonly presets = signal<Presets>(loadPresets());
 
   // Ferramenta atual
   readonly mode = signal<Mode>('peca');
@@ -76,6 +108,49 @@ export class MapStore {
         /* ignora */
       }
     });
+    effect(() => {
+      const p = this.presets();
+      try {
+        localStorage.setItem(PRESETS_KEY, JSON.stringify(p));
+      } catch {
+        /* ignora */
+      }
+    });
+  }
+
+  /** Grava a pintura das peças que estão no mapa como padrão de cada uma. Retorna quantas peças. */
+  savePresetsFromMap(): number {
+    const next: Presets = { ...this.presets() };
+    let n = 0;
+    for (const t of this.state().tiles) {
+      if (t.terrains && Object.keys(t.terrains).length) {
+        next[t.defId] = { ...t.terrains };
+        n++;
+      }
+    }
+    if (n) this.presets.set(next);
+    return n;
+  }
+
+  exportPresets(): string {
+    return JSON.stringify({ version: 1, presets: this.presets() }, null, 2);
+  }
+
+  /** Importa presets, somando aos atuais (peças repetidas são substituídas). Retorna quantas peças, ou -1 se inválido. */
+  importPresets(text: string): number {
+    try {
+      const parsed = JSON.parse(text);
+      const clean = parsed?.version === 1 ? cleanPresets(parsed.presets) : null;
+      if (!clean) return -1;
+      this.presets.set({ ...this.presets(), ...clean });
+      return Object.keys(clean).length;
+    } catch {
+      return -1;
+    }
+  }
+
+  clearPresets(): void {
+    this.presets.set({});
   }
 
   cellsOf(defId: string, q: number, r: number, rot: number): { q: number; r: number; cell: CellDef; index: number }[] {
@@ -113,10 +188,11 @@ export class MapStore {
         const defId = this.tileId();
         const rot = this.rotation();
         if (!this.canPlace(defId, q, r, rot)) return false;
+        const preset = this.presets()[defId];
         this.commit({
           ...s,
           nextUid: s.nextUid + 1,
-          tiles: [...s.tiles, { uid: s.nextUid, defId, q, r, rot }],
+          tiles: [...s.tiles, { uid: s.nextUid, defId, q, r, rot, ...(preset ? { terrains: { ...preset } } : {}) }],
         });
         return true;
       }

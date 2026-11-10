@@ -11,8 +11,14 @@
       <button type="button" (click)="exportMap()">Exportar JSON</button>
       <button type="button" (click)="file.click()">Importar JSON</button>
       <button type="button" class="danger" (click)="clearMap()">Limpar mapa</button>
+      <hr />
+      <button type="button" (click)="savePresets()">Salvar pinturas como padrão</button>
+      <button type="button" (click)="exportPresets()">Exportar presets</button>
+      <button type="button" (click)="presetFile.click()">Importar presets</button>
+      <button type="button" class="danger" (click)="clearPresets()">Remover presets</button>
     </div>
   }
+  <input #presetFile type="file" accept="application/json,.json" hidden (change)="importPresets(presetFile)" />
   <input #file type="file" accept="application/json,.json" hidden (change)="importMap(file)" />
 </header>
 
@@ -48,8 +54,8 @@
           >
             <svg [attr.viewBox]="t.viewBox" aria-hidden="true">
               <g [attr.transform]="store.tileId() === t.def.id ? 'rotate(' + store.rotation() * 60 + ')' : null">
-                @for (p of t.polys; track p) {
-                  <polygon [attr.points]="p" />
+                @for (p of t.polys; track p; let i = $index) {
+                  <polygon [attr.points]="p" [style.fill]="terrainColor(t.def.id, i)" />
                 }
               </g>
             </svg>

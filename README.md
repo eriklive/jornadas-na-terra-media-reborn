@@ -13,6 +13,27 @@ Editor de mapas hexagonais em 3D feito com **Angular** e **Three.js**, pensado p
 
 Controles: arrastar move o mapa; dois dedos (ou botão direito e roda do mouse) giram e aproximam; `R` gira a peça; `Ctrl+Z` desfaz.
 
+## Presets de peça
+
+Um preset define o terreno padrão de cada hexágono de uma peça; ao colocar a peça no mapa ela já nasce pintada. No menu **Mapa**:
+
+- **Salvar pinturas como padrão**: grava a pintura das peças que estão no mapa como padrão de cada uma.
+- **Exportar / Importar presets**: salva e carrega um arquivo `presets.json`.
+
+Formato (o índice do hexágono é a posição dele em `tile-outlines.ts`; o jeito mais fácil de obter o arquivo é pintar e exportar):
+
+```json
+{
+  "version": 1,
+  "presets": {
+    "100A": { "0": "floresta", "2": "agua" },
+    "300B": { "5": "ruinas" }
+  }
+}
+```
+
+Terrenos aceitos: `planicie`, `floresta`, `colina`, `montanha`, `agua`, `estrada`, `ruinas`, `vila`. Hexágonos sem entrada ficam como planície.
+
 ## Rodar
 
 ```bash

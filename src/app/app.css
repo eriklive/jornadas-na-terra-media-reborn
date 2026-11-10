@@ -47,6 +47,7 @@ button:focus-visible { outline: 2px solid #e6c877; outline-offset: 2px; }
   box-shadow: 0 8px 24px #0008;
 }
 .menu button { text-align: left; }
+.menu hr { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid #5a4e3a; }
 .danger { color: #ff9c8c; }
 
 .notice {
